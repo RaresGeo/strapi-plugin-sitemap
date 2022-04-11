@@ -3,6 +3,7 @@
 const { Map } = require('immutable');
 const { SitemapStream, streamToPromise } = require('sitemap');
 const { isEmpty, trim } = require('lodash');
+const { validatePattern, resolvePattern } = require("./Pattern")
 const fs = require('fs');
 
 /**
@@ -91,14 +92,17 @@ module.exports = {
   getSitemapPageData: (contentType, pages, config) => {
     let pageData = {};
 
-    pages.map((e) => {
-      const id = e.id;
+    pages.map((page) => {
+      const id = page.id;
       pageData[id] = {};
-      pageData[id].lastmod = e.updated_at;
+      pageData[id].lastmod = page.updated_at;
 
-      Object.entries(e).map(([i, e]) => {
+      Object.entries(page).map(([i, e]) => {
         if (i === config.contentTypes[contentType].uidField) {
-          const area = trim(config.contentTypes[contentType].area, '/');
+          let area = trim(config.contentTypes[contentType].area, '/');
+          if (area && validatePattern(area).valid) {
+            area = resolvePattern(area, page)
+          }
           const url = [area, e].filter(Boolean).join('/')
           pageData[id].url = url;
         }
@@ -125,7 +129,7 @@ module.exports = {
       }
 
       const hasDraftAndPublish = strapi.query(modelName).model.__schema__.options.draftAndPublish;
-      let pages = await strapi.query(modelName).find({_limit: -1});
+      let pages = await strapi.query(modelName).find({ _limit: -1 });
 
       if (config.excludeDrafts && hasDraftAndPublish) {
         pages = pages.filter((page) => page.published_at);
@@ -176,7 +180,7 @@ module.exports = {
           if (err) throw err;
         });
       })
-      .catch(() => console.error );
+      .catch(() => console.error);
   },
 
   createSitemap: async (sitemapEntries) => {
