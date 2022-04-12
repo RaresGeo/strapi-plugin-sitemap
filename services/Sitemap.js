@@ -89,25 +89,29 @@ module.exports = {
     };
   },
 
-  getSitemapPageData: (contentType, pages, config) => {
+  getSitemapPageData: async (contentType, pages, config) => {
     let pageData = {};
 
-    pages.map((page) => {
+    const promises = pages.map(async (page) => {
       const id = page.id;
       pageData[id] = {};
       pageData[id].lastmod = page.updated_at;
 
-      Object.entries(page).map(([i, e]) => {
+      const promises = Object.entries(page).map(async ([i, e]) => {
         if (i === config.contentTypes[contentType].uidField) {
           let area = trim(config.contentTypes[contentType].area, '/');
           if (area && validatePattern(area).valid) {
-            area = resolvePattern(area, page)
+            area = await resolvePattern(area, page)
           }
           const url = [area, e].filter(Boolean).join('/')
           pageData[id].url = url;
         }
       })
+
+      await Promise.all(promises)
     })
+
+    await Promise.all(promises)
 
     return pageData;
   },
