@@ -139,6 +139,8 @@ module.exports = {
         pages = pages.filter((page) => page.published_at);
       }
 
+      pages = pages.filter((page) => page.exclude_from_sitemap !== true)
+
       const pageData = await module.exports.getSitemapPageData(contentType, pages, config);
 
       Object.values(pageData).map(({ url, lastmod }) => {
